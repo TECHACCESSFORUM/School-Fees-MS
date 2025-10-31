@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Fees Data Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .section h2 {
+            color: #444;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .action-btn {
+            padding: 6px 12px;
+            margin: 2px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .edit-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .edit-btn:hover {
+            background-color: #218838;
+        }
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button[type="submit"] {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        .sync-status {
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .syncing {
+            color: #ffc107;
+        }
+        .synced {
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>School Fees Management Data Viewer</h1>
+        <div id="sync-status" class="sync-status">Loading data...</div>
+
+        <div class="section">
+            <h2>Classes</h2>
+            <table id="classes-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>Students</h2>
+            <table id="students-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Class</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Balance</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>Teachers</h2>
+            <table id="teachers-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>Billings</h2>
+            <table id="billings-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Student</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>Payments</h2>
+            <table id="payments-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Student</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Edit Modals -->
+    <div id="edit-class-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit Class</h2>
+            <form id="edit-class-form">
+                <div class="form-group">
+                    <label for="edit-class-name">Name:</label>
+                    <input type="text" id="edit-class-name" required>
+                </div>
+                <button type="submit">Update Class</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="edit-student-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit Student</h2>
+            <form id="edit-student-form">
+                <div class="form-group">
+                    <label for="edit-student-name">Name:</label>
+                    <input type="text" id="edit-student-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-student-class">Class:</label>
+                    <select id="edit-student-class" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-student-email">Email:</label>
+                    <input type="email" id="edit-student-email">
+                </div>
+                <div class="form-group">
+                    <label for="edit-student-phone">Phone:</label>
+                    <input type="tel" id="edit-student-phone">
+                </div>
+                <button type="submit">Update Student</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="edit-teacher-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit Teacher</h2>
+            <form id="edit-teacher-form">
+                <div class="form-group">
+                    <label for="edit-teacher-name">Name:</label>
+                    <input type="text" id="edit-teacher-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-teacher-email">Email:</label>
+                    <input type="email" id="edit-teacher-email">
+                </div>
+                <div class="form-group">
+                    <label for="edit-teacher-phone">Phone:</label>
+                    <input type="tel" id="edit-teacher-phone">
+                </div>
+                <button type="submit">Update Teacher</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="edit-billing-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit Billing</h2>
+            <form id="edit-billing-form">
+                <div class="form-group">
+                    <label for="edit-billing-student">Student:</label>
+                    <select id="edit-billing-student" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-billing-description">Description:</label>
+                    <input type="text" id="edit-billing-description" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-billing-amount">Amount:</label>
+                    <input type="number" id="edit-billing-amount" step="0.01" required>
+                </div>
+                <button type="submit">Update Billing</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="edit-payment-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit Payment</h2>
+            <form id="edit-payment-form">
+                <div class="form-group">
+                    <label for="edit-payment-student">Student:</label>
+                    <select id="edit-payment-student" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-payment-amount">Amount:</label>
+                    <input type="number" id="edit-payment-amount" step="0.01" required>
+                </div>
+                <button type="submit">Update Payment</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        class DataViewer {
+            constructor() {
+                this.remoteUrl = 'https://api.jsonbin.io/v3/b/6793e8b8acd3cb34a8c8e8e8'; // Replace with your JSONBin URL
+                this.apiKey = 'YOUR_JSONBIN_API_KEY'; // Replace with your API key
+                this.data = null;
+                this.isSyncing = false;
+                this.init();
+            }
+
+            setSyncStatus(status) {
+                const syncElement = document.getElementById('sync-status');
+                if (syncElement) {
+                    syncElement.textContent = status;
+                    syncElement.className = 'sync-status ' + (status === 'Syncing...' ? 'syncing' : status.includes('Error') ? 'error' : 'synced');
+                }
+            }
+
+            async init() {
+                await this.loadData();
+                this.bindEvents();
+                this.renderAllTables();
+            }
+
+            bindEvents() {
+                // Close modals
+                document.querySelectorAll('.close').forEach(close => {
+                    close.addEventListener('click', () => this.closeModals());
+                });
+
+                // Edit forms
+                document.getElementById('edit-class-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.updateClass();
+                });
+
+                document.getElementById('edit-student-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.updateStudent();
+                });
+
+                document.getElementById('edit-teacher-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.updateTeacher();
+                });
+
+                document.getElementById('edit-billing-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.updateBilling();
+                });
+
+                document.getElementById('edit-payment-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.updatePayment();
+                });
+            }
+
+            async loadData() {
+                try {
+                    this.setSyncStatus('Loading...');
+                    const response = await fetch(this.remoteUrl, {
+                        headers: {
+                            'X-Master-Key': this.apiKey
+                        }
+                    });
+
+                    if (!response.ok) throw new Error('Failed to load data');
+
+                    const result = await response.json();
+                    this.data = result.record || {
+                        classes: [],
+                        students: [],
+                        teachers: [],
+                        billings: [],
+                        payments: []
+                    };
+
+                    this.setSyncStatus('Data loaded successfully');
+                } catch (error) {
+                    console.error('Load error:', error);
+                    this.setSyncStatus('Error loading data');
+                    this.data = {
+                        classes: [],
+                        students: [],
+                        teachers: [],
+                        billings: [],
+                        payments: []
+                    };
+                }
+            }
+
+            async syncToRemote() {
+                if (this.isSyncing) return;
+                this.isSyncing = true;
+                this.setSyncStatus('Syncing...');
+
+                try {
+                    const response = await fetch(this.remoteUrl, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': this.apiKey
+                        },
+                        body: JSON.stringify(this.data)
+                    });
+
+                    if (!response.ok) throw new Error('Sync failed');
+
+                    this.setSyncStatus('Synced successfully');
+                } catch (error) {
+                    console.error('Sync error:', error);
+                    this.setSyncStatus('Sync failed');
+                } finally {
+                    this.isSyncing = false;
+                }
+            }
+
+            renderAllTables() {
+                this.renderClassesTable();
+                this.renderStudentsTable();
+                this.renderTeachersTable();
+                this.renderBillingsTable();
+                this.renderPaymentsTable();
+            }
+
+            renderClassesTable() {
+                const tbody = document.querySelector('#classes-table tbody');
+                tbody.innerHTML = '';
+
+                this.data.classes.forEach(cls => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${cls.id}</td>
+                        <td>${cls.name}</td>
+                        <td>
+                            <button class="action-btn edit-btn" onclick="viewer.editClass(${cls.id})">Edit</button>
+                            <button class="action-btn delete-btn" onclick="viewer.deleteClass(${cls.id})">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            renderStudentsTable() {
+                const tbody = document.querySelector('#students-table tbody');
+                tbody.innerHTML = '';
+
+                this.data.students.forEach(student => {
+                    const cls = this.data.classes.find(c => c.id === student.classId);
+                    const balance = this.calculateStudentBalance(student.id);
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${student.id}</td>
+                        <td>${student.name}</td>
+                        <td>${cls ? cls.name : 'N/A'}</td>
+                        <td>${student.email || '-'}</td>
+                        <td>${student.phone || '-'}</td>
+                        <td>$${balance.toFixed(2)}</td>
+                        <td>
+                            <button class="action-btn edit-btn" onclick="viewer.editStudent(${student.id})">Edit</button>
+                            <button class="action-btn delete-btn" onclick="viewer.deleteStudent(${student.id})">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            renderTeachersTable() {
+                const tbody = document.querySelector('#teachers-table tbody');
+                tbody.innerHTML = '';
+
+                this.data.teachers.forEach(teacher => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${teacher.id}</td>
+                        <td>${teacher.name}</td>
+                        <td>${teacher.email || '-'}</td>
+                        <td>${teacher.phone || '-'}</td>
+                        <td>
+                            <button class="action-btn edit-btn" onclick="viewer.editTeacher(${teacher.id})">Edit</button>
+                            <button class="action-btn delete-btn" onclick="viewer.deleteTeacher(${teacher.id})">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            renderBillingsTable() {
+                const tbody = document.querySelector('#billings-table tbody');
+                tbody.innerHTML = '';
+
+                this.data.billings.forEach(billing => {
+                    const student = this.data.students.find(s => s.id === billing.studentId);
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${billing.id}</td>
+                        <td>${student ? student.name : 'Unknown'}</td>
+                        <td>${billing.description}</td>
+                        <td>$${parseFloat(billing.amount).toFixed(2)}</td>
+                        <td>${new Date(billing.date).toLocaleDateString()}</td>
+                        <td>
+                            <button class="action-btn edit-btn" onclick="viewer.editBilling(${billing.id})">Edit</button>
+                            <button class="action-btn delete-btn" onclick="viewer.deleteBilling(${billing.id})">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            renderPaymentsTable() {
+                const tbody = document.querySelector('#payments-table tbody');
+                tbody.innerHTML = '';
+
+                this.data.payments.forEach(payment => {
+                    const student = this.data.students.find(s => s.id === payment.studentId);
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${payment.id}</td>
+                        <td>${student ? student.name : 'Unknown'}</td>
+                        <td>$${parseFloat(payment.amount).toFixed(2)}</td>
+                        <td>${new Date(payment.date).toLocaleDateString()}</td>
+                        <td>
+                            <button class="action-btn edit-btn" onclick="viewer.editPayment(${payment.id})">Edit</button>
+                            <button class="action-btn delete-btn" onclick="viewer.deletePayment(${payment.id})">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            calculateStudentBalance(studentId) {
+                const bills = this.data.billings.filter(bill => bill.studentId === studentId)
+                    .reduce((sum, bill) => sum + parseFloat(bill.amount), 0);
+                const payments = this.data.payments.filter(payment => payment.studentId === studentId)
+                    .reduce((sum, payment) => sum + parseFloat(payment.amount), 0);
+                return bills - payments;
+            }
+
+            // Edit methods
+            editClass(id) {
+                const cls = this.data.classes.find(c => c.id === id);
+                if (cls) {
+                    document.getElementById('edit-class-name').value = cls.name;
+                    document.getElementById('edit-class-modal').style.display = 'block';
+                    this.editingClassId = id;
+                }
+            }
+
+            editStudent(id) {
+                const student = this.data.students.find(s => s.id === id);
+                if (student) {
+                    document.getElementById('edit-student-name').value = student.name;
+                    document.getElementById('edit-student-email').value = student.email || '';
+                    document.getElementById('edit-student-phone').value = student.phone || '';
+                    this.populateClassSelect('edit-student-class', student.classId);
+                    document.getElementById('edit-student-modal').style.display = 'block';
+                    this.editingStudentId = id;
+                }
+            }
+
+            editTeacher(id) {
+                const teacher = this.data.teachers.find(t => t.id === id);
+                if (teacher) {
+                    document.getElementById('edit-teacher-name').value = teacher.name;
+                    document.getElementById('edit-teacher-email').value = teacher.email || '';
+                    document.getElementById('edit-teacher-phone').value = teacher.phone || '';
+                    document.getElementById('edit-teacher-modal').style.display = 'block';
+                    this.editingTeacherId = id;
+                }
+            }
+
+            editBilling(id) {
+                const billing = this.data.billings.find(b => b.id === id);
+                if (billing) {
+                    this.populateStudentSelect('edit-billing-student', billing.studentId);
+                    document.getElementById('edit-billing-description').value = billing.description;
+                    document.getElementById('edit-billing-amount').value = billing.amount;
+                    document.getElementById('edit-billing-modal').style.display = 'block';
+                    this.editingBillingId = id;
+                }
+            }
+
+            editPayment(id) {
+                const payment = this.data.payments.find(p => p.id === id);
+                if (payment) {
+                    this.populateStudentSelect('edit-payment-student', payment.studentId);
+                    document.getElementById('edit-payment-amount').value = payment.amount;
+                    document.getElementById('edit-payment-modal').style.display = 'block';
+                    this.editingPaymentId = id;
+                }
+            }
+
+            // Update methods
+            updateClass() {
+                const name = document.getElementById('edit-class-name').value.trim();
+                if (name && this.editingClassId) {
+                    const cls = this.data.classes.find(c => c.id === this.editingClassId);
+                    if (cls) {
+                        cls.name = name;
+                        this.renderClassesTable();
+                        this.syncToRemote();
+                        this.closeModals();
+                    }
+                }
+            }
+
+            updateStudent() {
+                const name = document.getElementById('edit-student-name').value.trim();
+                const classId = parseInt(document.getElementById('edit-student-class').value);
+                const email = document.getElementById('edit-student-email').value.trim();
+                const phone = document.getElementById('edit-student-phone').value.trim();
+
+                if (name && classId && this.editingStudentId) {
+                    const student = this.data.students.find(s => s.id === this.editingStudentId);
+                    if (student) {
+                        student.name = name;
+                        student.classId = classId;
+                        student.email = email;
+                        student.phone = phone;
+                        this.renderStudentsTable();
+                        this.renderBillingsTable();
+                        this.renderPaymentsTable();
+                        this.syncToRemote();
+                        this.closeModals();
+                    }
+                }
+            }
+
+            updateTeacher() {
+                const name = document.getElementById('edit-teacher-name').value.trim();
+                const email = document.getElementById('edit-teacher-email').value.trim();
+                const phone = document.getElementById('edit-teacher-phone').value.trim();
+
+                if (name && this.editingTeacherId) {
+                    const teacher = this.data.teachers.find(t => t.id === this.editingTeacherId);
+                    if (teacher) {
+                        teacher.name = name;
+                        teacher.email = email;
+                        teacher.phone = phone;
+                        this.renderTeachersTable();
+                        this.syncToRemote();
+                        this.closeModals();
+                    }
+                }
+            }
+
+            updateBilling() {
+                const studentId = parseInt(document.getElementById('edit-billing-student').value);
+                const description = document.getElementById('edit-billing-description').value.trim();
+                const amount = parseFloat(document.getElementById('edit-billing-amount').value);
+
+                if (studentId && description && amount > 0 && this.editingBillingId) {
+                    const billing = this.data.billings.find(b => b.id === this.editingBillingId);
+                    if (billing) {
+                        billing.studentId = studentId;
+                        billing.description = description;
+                        billing.amount = amount;
+                        this.renderBillingsTable();
+                        this.renderStudentsTable();
+                        this.syncToRemote();
+                        this.closeModals();
+                    }
+                }
+            }
+
+            updatePayment() {
+                const studentId = parseInt(document.getElementById('edit-payment-student').value);
+                const amount = parseFloat(document.getElementById('edit-payment-amount').value);
+
+                if (studentId && amount > 0 && this.editingPaymentId) {
+                    const payment = this.data.payments.find(p => p.id === this.editingPaymentId);
+                    if (payment) {
+                        payment.studentId = studentId;
+                        payment.amount = amount;
+                        this.renderPaymentsTable();
+                        this.renderStudentsTable();
+                        this.syncToRemote();
+                        this.closeModals();
+                    }
+                }
+            }
+
+            // Delete methods
+            deleteClass(id) {
+                if (confirm('Are you sure you want to delete this class?')) {
+                    this.data.classes = this.data.classes.filter(cls => cls.id !== id);
+                    this.renderClassesTable();
+                    this.renderStudentsTable();
+                    this.syncToRemote();
+                }
+            }
+
+            deleteStudent(id) {
+                if (confirm('Are you sure you want to delete this student?')) {
+                    this.data.students = this.data.students.filter(s => s.id !== id);
+                    this.data.billings = this.data.billings.filter(bill => bill.studentId !== id);
+                    this.data.payments = this.data.payments.filter(payment => payment.studentId !== id);
+                    this.renderStudentsTable();
+                    this.renderBillingsTable();
+                    this.renderPaymentsTable();
+                    this.syncToRemote();
+                }
+            }
+
+            deleteTeacher(id) {
+                if (confirm('Are you sure you want to delete this teacher?')) {
+                    this.data.teachers = this.data.teachers.filter(t => t.id !== id);
+                    this.renderTeachersTable();
+                    this.syncToRemote();
+                }
+            }
+
+            deleteBilling(id) {
+                if (confirm('Are you sure you want to delete this billing record?')) {
+                    this.data.billings = this.data.billings.filter(bill => bill.id !== id);
+                    this.renderBillingsTable();
+                    this.renderStudentsTable();
+                    this.syncToRemote();
+                }
+            }
+
+            deletePayment(id) {
+                if (confirm('Are you sure you want to delete this payment record?')) {
+                    this.data.payments = this.data.payments.filter(payment => payment.id !== id);
+                    this.renderPaymentsTable();
+                    this.renderStudentsTable();
+                    this.syncToRemote();
+                }
+            }
+
+            // Helper methods
+            populateClassSelect(selectId, selectedId) {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '<option value="">Select Class</option>';
+                this.data.classes.forEach(cls => {
+                    const option = document.createElement('option');
+                    option.value = cls.id;
+                    option.textContent = cls.name;
+                    if (cls.id === selectedId) option.selected = true;
+                    select.appendChild(option);
+                });
+            }
+
+            populateStudentSelect(selectId, selectedId) {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '<option value="">Select Student</option>';
+                this.data.students.forEach(student => {
+                    const option = document.createElement('option');
+                    option.value = student.id;
+                    option.textContent = student.name;
+                    if (student.id === selectedId) option.selected = true;
+                    select.appendChild(option);
+                });
+            }
+
+            closeModals() {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.style.display = 'none';
+                });
+            }
+        }
+
+        // Initialize the viewer
+        const viewer = new DataViewer();
+    </script>
+</body>
+</html>

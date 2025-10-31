@@ -10,15 +10,83 @@ if ('serviceWorker' in navigator) {
             });
     });
 }
+// Sync Manager for remote data operations
+class SyncManager {
+    constructor(dataManager) {
+        this.dataManager = dataManager;
+        this.remoteUrl = 'https://api.jsonbin.io/v3/b/6793e8b8acd3cb34a8c8e8e8'; // Replace with your JSONBin URL
+        this.apiKey = 'YOUR_JSONBIN_API_KEY'; // Replace with your API key
+        this.isSyncing = false;
+    }
+
+    setSyncStatus(status) {
+        const syncElement = document.getElementById('sync-status');
+        if (syncElement) {
+            syncElement.textContent = status;
+            syncElement.classList.toggle('syncing', status === 'Syncing...');
+        }
+    }
+
+    async syncToRemote() {
+        if (this.isSyncing) return;
+        this.isSyncing = true;
+        this.setSyncStatus('Syncing...');
+
+        try {
+            const data = this.dataManager.exportData();
+            const response = await fetch(this.remoteUrl, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Master-Key': this.apiKey
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) throw new Error('Sync failed');
+
+            this.setSyncStatus('Synced ✅');
+        } catch (error) {
+            console.error('Sync error:', error);
+            this.setSyncStatus('Sync Failed ❌');
+            setTimeout(() => this.setSyncStatus('Synced ✅'), 3000);
+        } finally {
+            this.isSyncing = false;
+        }
+    }
+
+    async loadFromRemote() {
+        try {
+            const response = await fetch(this.remoteUrl, {
+                headers: {
+                    'X-Master-Key': this.apiKey
+                }
+            });
+
+            if (!response.ok) throw new Error('Load failed');
+
+            const result = await response.json();
+            if (result.record) {
+                this.dataManager.importData(result.record);
+                return true;
+            }
+        } catch (error) {
+            console.error('Load error:', error);
+        }
+        return false;
+    }
+}
+
 // Data Models and Storage
 class DataManager {
     constructor() {
         this.classes = this.loadData('classes') || [];
         this.students = this.loadData('students') || [];
         this.teachers = this.loadData('teachers') || [];
-        this.bills = this.loadData('bills') || [];
+        this.billings = this.loadData('billings') || [];
         this.payments = this.loadData('payments') || [];
         this.currentUser = null;
+        this.syncManager = new SyncManager(this);
     }
 
     loadData(key) {
@@ -34,7 +102,7 @@ class DataManager {
         this.saveData('classes', this.classes);
         this.saveData('students', this.students);
         this.saveData('teachers', this.teachers);
-        this.saveData('bills', this.bills);
+        this.saveData('billings', this.billings);
         this.saveData('payments', this.payments);
     }
 
@@ -43,7 +111,7 @@ class DataManager {
             classes: this.classes,
             students: this.students,
             teachers: this.teachers,
-            bills: this.bills,
+            billings: this.billings,
             payments: this.payments,
             exportDate: new Date().toISOString()
         };
@@ -53,7 +121,7 @@ class DataManager {
         if (data.classes) this.classes = data.classes;
         if (data.students) this.students = data.students;
         if (data.teachers) this.teachers = data.teachers;
-        if (data.bills) this.bills = data.bills;
+        if (data.billings) this.billings = data.billings;
         if (data.payments) this.payments = data.payments;
         this.saveAll();
     }
@@ -62,7 +130,7 @@ class DataManager {
         this.classes = [];
         this.students = [];
         this.teachers = [];
-        this.bills = [];
+        this.billings = [];
         this.payments = [];
         this.saveAll();
     }
@@ -113,8 +181,9 @@ class UIManager {
         this.init();
     }
 
-    init() {
+    async init() {
         this.bindEvents();
+        await this.dataManager.syncManager.loadFromRemote();
         this.showLoginScreen();
     }
 
@@ -288,7 +357,7 @@ class UIManager {
 
     updateDashboard() {
         const totalStudents = this.dataManager.students.length;
-        const totalBilled = this.dataManager.bills.reduce((sum, bill) => sum + parseFloat(bill.amount), 0);
+        const totalBilled = this.dataManager.billings.reduce((sum, bill) => sum + parseFloat(bill.amount), 0);
         const totalPaid = this.dataManager.payments.reduce((sum, payment) => sum + parseFloat(payment.amount), 0);
         const outstanding = totalBilled - totalPaid;
 
@@ -306,6 +375,7 @@ class UIManager {
             document.getElementById('class-form').reset();
             this.updateClassesList();
             this.updateClassSelects();
+            this.dataManager.syncManager.syncToRemote();
         }
     }
 
@@ -328,6 +398,7 @@ class UIManager {
             this.dataManager.saveData('classes', this.dataManager.classes);
             this.updateClassesList();
             this.updateClassSelects();
+            this.dataManager.syncManager.syncToRemote();
         }
     }
 
@@ -352,6 +423,7 @@ class UIManager {
             this.updateStudentsTable();
             this.updateStudentSelects();
             this.updateDashboard();
+            this.dataManager.syncManager.syncToRemote();
         }
     }
 
@@ -373,6 +445,7 @@ class UIManager {
                 <td>
                     <button class="action-btn edit-btn" onclick="uiManager.editStudent(${student.id})">Edit</button>
                     <button class="action-btn pay-btn" onclick="uiManager.showPaymentModal(${student.id})">Pay</button>
+                    <button class="action-btn print-btn" onclick="uiManager.printStudentReceipt(${student.id})">Print Receipt</button>
                     <button class="action-btn" onclick="uiManager.deleteStudent(${student.id})">Delete</button>
                 </td>
             `;
@@ -381,7 +454,7 @@ class UIManager {
     }
 
     calculateStudentBalance(studentId) {
-        const bills = this.dataManager.bills.filter(bill => bill.studentId === studentId)
+        const bills = this.dataManager.billings.filter(bill => bill.studentId === studentId)
             .reduce((sum, bill) => sum + parseFloat(bill.amount), 0);
         const payments = this.dataManager.payments.filter(payment => payment.studentId === studentId)
             .reduce((sum, payment) => sum + parseFloat(payment.amount), 0);
@@ -429,6 +502,7 @@ class UIManager {
                 this.updateStudentsTable();
                 this.updateStudentSelects();
                 this.closeModals();
+                this.dataManager.syncManager.syncToRemote();
             }
         }
     }
@@ -453,19 +527,21 @@ class UIManager {
             this.updateDashboard();
             this.closeModals();
             document.getElementById('payment-form').reset();
+            this.dataManager.syncManager.syncToRemote();
         }
     }
 
     deleteStudent(id) {
         if (confirm('Are you sure you want to delete this student?')) {
             this.dataManager.students = this.dataManager.students.filter(s => s.id !== id);
-            this.dataManager.bills = this.dataManager.bills.filter(bill => bill.studentId !== id);
+            this.dataManager.billings = this.dataManager.billings.filter(bill => bill.studentId !== id);
             this.dataManager.payments = this.dataManager.payments.filter(payment => payment.studentId !== id);
             this.dataManager.saveAll();
             this.updateStudentsTable();
             this.updateBillsTable();
             this.updateStudentSelects();
             this.updateDashboard();
+            this.dataManager.syncManager.syncToRemote();
         }
     }
 
@@ -484,6 +560,7 @@ class UIManager {
             this.dataManager.saveData('teachers', this.dataManager.teachers);
             document.getElementById('teacher-form').reset();
             this.updateTeachersTable();
+            this.dataManager.syncManager.syncToRemote();
         }
     }
 
@@ -510,6 +587,7 @@ class UIManager {
             this.dataManager.teachers = this.dataManager.teachers.filter(t => t.id !== id);
             this.dataManager.saveData('teachers', this.dataManager.teachers);
             this.updateTeachersTable();
+            this.dataManager.syncManager.syncToRemote();
         }
     }
 
@@ -519,18 +597,19 @@ class UIManager {
         const amount = parseFloat(document.getElementById('bill-amount').value);
 
         if (studentId && description && amount > 0) {
-            this.dataManager.bills.push({
+            this.dataManager.billings.push({
                 id: Date.now(),
                 studentId,
                 description,
                 amount,
                 date: new Date().toISOString()
             });
-            this.dataManager.saveData('bills', this.dataManager.bills);
+            this.dataManager.saveData('billings', this.dataManager.billings);
             document.getElementById('bill-form').reset();
             this.updateBillsTable();
             this.updateStudentsTable();
             this.updateDashboard();
+            this.dataManager.syncManager.syncToRemote();
         }
     }
 
@@ -538,7 +617,7 @@ class UIManager {
         const tbody = document.querySelector('#bills-table tbody');
         tbody.innerHTML = '';
 
-        this.dataManager.bills.forEach(bill => {
+        this.dataManager.billings.forEach(bill => {
             const student = this.dataManager.students.find(s => s.id === bill.studentId);
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -600,7 +679,7 @@ class UIManager {
             ['Total Students', this.dataManager.students.length],
             ['Total Teachers', this.dataManager.teachers.length],
             ['Total Classes', this.dataManager.classes.length],
-            ['Total Billed', `$${this.dataManager.bills.reduce((sum, bill) => sum + parseFloat(bill.amount), 0).toFixed(2)}`],
+            ['Total Billed', `$${this.dataManager.billings.reduce((sum, bill) => sum + parseFloat(bill.amount), 0).toFixed(2)}`],
             ['Total Paid', `$${this.dataManager.payments.reduce((sum, payment) => sum + parseFloat(payment.amount), 0).toFixed(2)}`],
             ['Outstanding', `$${this.calculateOutstanding().toFixed(2)}`]
         ];
@@ -657,7 +736,7 @@ class UIManager {
     }
 
     calculateOutstanding() {
-        const totalBilled = this.dataManager.bills.reduce((sum, bill) => sum + parseFloat(bill.amount), 0);
+        const totalBilled = this.dataManager.billings.reduce((sum, bill) => sum + parseFloat(bill.amount), 0);
         const totalPaid = this.dataManager.payments.reduce((sum, payment) => sum + parseFloat(payment.amount), 0);
         return totalBilled - totalPaid;
     }
@@ -686,6 +765,71 @@ class UIManager {
             }
         };
         reader.readAsText(file);
+    }
+
+    printStudentReceipt(studentId) {
+        const student = this.dataManager.students.find(s => s.id === studentId);
+        if (!student) return;
+
+        const cls = this.dataManager.classes.find(c => c.id === student.classId);
+        const bills = this.dataManager.billings.filter(bill => bill.studentId === studentId);
+        const payments = this.dataManager.payments.filter(payment => payment.studentId === studentId);
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Header
+        doc.setFontSize(20);
+        doc.text('School Fees Receipt', 20, 30);
+
+        doc.setFontSize(12);
+        doc.text(`Student: ${student.name}`, 20, 50);
+        doc.text(`Class: ${cls ? cls.name : 'N/A'}`, 20, 60);
+        doc.text(`Email: ${student.email || 'N/A'}`, 20, 70);
+        doc.text(`Phone: ${student.phone || 'N/A'}`, 20, 80);
+        doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 90);
+
+        // Bills section
+        doc.setFontSize(14);
+        doc.text('Billing Records:', 20, 110);
+
+        let yPos = 120;
+        doc.setFontSize(10);
+        bills.forEach(bill => {
+            doc.text(`${bill.description}: $${parseFloat(bill.amount).toFixed(2)} (${new Date(bill.date).toLocaleDateString()})`, 20, yPos);
+            yPos += 10;
+        });
+
+        // Payments section
+        yPos += 10;
+        doc.setFontSize(14);
+        doc.text('Payment Records:', 20, yPos);
+        yPos += 10;
+        doc.setFontSize(10);
+        payments.forEach(payment => {
+            doc.text(`Payment: $${parseFloat(payment.amount).toFixed(2)} (${new Date(payment.date).toLocaleDateString()})`, 20, yPos);
+            yPos += 10;
+        });
+
+        // Summary
+        const totalBilled = bills.reduce((sum, bill) => sum + parseFloat(bill.amount), 0);
+        const totalPaid = payments.reduce((sum, payment) => sum + parseFloat(payment.amount), 0);
+        const balance = totalBilled - totalPaid;
+
+        yPos += 10;
+        doc.setFontSize(12);
+        doc.text(`Total Billed: $${totalBilled.toFixed(2)}`, 20, yPos);
+        yPos += 10;
+        doc.text(`Total Paid: $${totalPaid.toFixed(2)}`, 20, yPos);
+        yPos += 10;
+        doc.text(`Outstanding Balance: $${balance.toFixed(2)}`, 20, yPos);
+
+        // Footer
+        yPos += 20;
+        doc.setFontSize(10);
+        doc.text('Thank you for your payment!', 20, yPos);
+
+        doc.save(`receipt_${student.name.replace(/\s+/g, '_')}.pdf`);
     }
 
     clearData() {
