@@ -36,7 +36,6 @@
                 <li><a href="#" data-tab="home">Home</a></li>
                 <li><a href="#" data-tab="classes">Classes</a></li>
                 <li><a href="#" data-tab="students">Students</a></li>
-                <li><a href="#" data-tab="teachers">Teachers</a></li>
                 <li><a href="#" data-tab="billing">Billing</a></li>
                 <li><a href="#" data-tab="reports">Reports</a></li>
                 <li><a href="#" data-tab="settings">Settings</a></li>
@@ -83,7 +82,7 @@
                     <select id="student-class" required>
                         <option value="">Select Class</option>
                     </select>
-                    <input type="email" id="student-email" placeholder="Email">
+                    <input type="text" id="student-id" placeholder="Student ID" required>
                     <input type="tel" id="student-phone" placeholder="Phone">
                     <button type="submit">Add Student</button>
                 </form>
@@ -92,7 +91,7 @@
                         <tr>
                             <th>Name</th>
                             <th>Class</th>
-                            <th>Email</th>
+                            <th>Student ID</th>
                             <th>Phone</th>
                             <th>Balance</th>
                             <th>Actions</th>
@@ -102,26 +101,6 @@
                 </table>
             </div>
 
-            <div id="teachers-tab" class="tab-content">
-                <h2>Manage Teachers</h2>
-                <form id="teacher-form">
-                    <input type="text" id="teacher-name" placeholder="Teacher Name" required>
-                    <input type="email" id="teacher-email" placeholder="Email">
-                    <input type="tel" id="teacher-phone" placeholder="Phone">
-                    <button type="submit">Add Teacher</button>
-                </form>
-                <table id="teachers-table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Phone</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
 
             <div id="billing-tab" class="tab-content">
                 <h2>Billing System</h2>
@@ -171,7 +150,7 @@
             <form id="edit-student-form">
                 <input type="text" id="edit-student-name" required>
                 <select id="edit-student-class" required></select>
-                <input type="email" id="edit-student-email">
+                <input type="text" id="edit-student-id" required>
                 <input type="tel" id="edit-student-phone">
                 <button type="submit">Update</button>
             </form>

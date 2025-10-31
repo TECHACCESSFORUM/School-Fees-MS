@@ -405,15 +405,15 @@ class UIManager {
     addStudent() {
         const name = document.getElementById('student-name').value.trim();
         const classId = parseInt(document.getElementById('student-class').value);
-        const email = document.getElementById('student-email').value.trim();
+        const studentId = document.getElementById('student-id').value.trim();
         const phone = document.getElementById('student-phone').value.trim();
 
-        if (name && classId) {
+        if (name && classId && studentId) {
             const student = {
                 id: Date.now(),
                 name,
                 classId,
-                email,
+                studentId,
                 phone,
                 balance: 0
             };
@@ -439,13 +439,13 @@ class UIManager {
             tr.innerHTML = `
                 <td>${student.name}</td>
                 <td>${cls ? cls.name : 'N/A'}</td>
-                <td>${student.email || '-'}</td>
+                <td>${student.studentId || '-'}</td>
                 <td>${student.phone || '-'}</td>
                 <td>$${balance.toFixed(2)}</td>
                 <td>
                     <button class="action-btn edit-btn" onclick="uiManager.editStudent(${student.id})">Edit</button>
                     <button class="action-btn pay-btn" onclick="uiManager.showPaymentModal(${student.id})">Pay</button>
-                    <button class="action-btn print-btn" onclick="uiManager.printStudentReceipt(${student.id})">Print Receipt</button>
+                    ${this.authManager.isAdmin() ? `<button class="action-btn print-btn" onclick="uiManager.printStudentReceipt(${student.id})">Print Receipt</button>` : ''}
                     <button class="action-btn" onclick="uiManager.deleteStudent(${student.id})">Delete</button>
                 </td>
             `;
@@ -465,7 +465,7 @@ class UIManager {
         const student = this.dataManager.students.find(s => s.id === id);
         if (student) {
             document.getElementById('edit-student-name').value = student.name;
-            document.getElementById('edit-student-email').value = student.email || '';
+            document.getElementById('edit-student-id').value = student.studentId || '';
             document.getElementById('edit-student-phone').value = student.phone || '';
             this.updateEditClassSelect(student.classId);
             document.getElementById('edit-student-modal').classList.remove('hidden');
@@ -488,15 +488,15 @@ class UIManager {
     updateStudent() {
         const name = document.getElementById('edit-student-name').value.trim();
         const classId = parseInt(document.getElementById('edit-student-class').value);
-        const email = document.getElementById('edit-student-email').value.trim();
+        const studentId = document.getElementById('edit-student-id').value.trim();
         const phone = document.getElementById('edit-student-phone').value.trim();
 
-        if (name && classId && this.editingStudentId) {
+        if (name && classId && studentId && this.editingStudentId) {
             const student = this.dataManager.students.find(s => s.id === this.editingStudentId);
             if (student) {
                 student.name = name;
                 student.classId = classId;
-                student.email = email;
+                student.studentId = studentId;
                 student.phone = phone;
                 this.dataManager.saveData('students', this.dataManager.students);
                 this.updateStudentsTable();
@@ -785,7 +785,7 @@ class UIManager {
         doc.setFontSize(12);
         doc.text(`Student: ${student.name}`, 20, 50);
         doc.text(`Class: ${cls ? cls.name : 'N/A'}`, 20, 60);
-        doc.text(`Email: ${student.email || 'N/A'}`, 20, 70);
+        doc.text(`Student ID: ${student.studentId || 'N/A'}`, 20, 70);
         doc.text(`Phone: ${student.phone || 'N/A'}`, 20, 80);
         doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 90);
 
