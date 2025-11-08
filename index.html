@@ -143,6 +143,7 @@
                             <th>Description</th>
                             <th>Amount</th>
                             <th>Date</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -212,6 +213,21 @@
             <form id="payment-form">
                 <input type="number" id="payment-amount" placeholder="Amount" step="0.01" required>
                 <button type="submit">Record Payment</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="edit-bill-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit Bill</h2>
+            <form id="edit-bill-form">
+                <select id="edit-bill-student" required>
+                    <option value="">Select Student</option>
+                </select>
+                <input type="text" id="edit-bill-description" required>
+                <input type="number" id="edit-bill-amount" placeholder="Amount" step="0.01" required>
+                <button type="submit">Update Bill</button>
             </form>
         </div>
     </div>

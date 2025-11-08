@@ -277,6 +277,11 @@ class UIManager {
             this.recordPayment();
         });
 
+        document.getElementById('edit-bill-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.updateBill();
+        });
+
         // Reports
         document.getElementById('export-summary').addEventListener('click', () => {
             this.exportSummaryPDF();
@@ -730,6 +735,10 @@ class UIManager {
                 <td>${bill.description}</td>
                 <td>$${parseFloat(bill.amount).toFixed(2)}</td>
                 <td>${new Date(bill.date).toLocaleDateString()}</td>
+                <td>
+                    <button class="action-btn edit-btn" onclick="uiManager.editBill(${bill.id})">Edit</button>
+                    <button class="action-btn" onclick="uiManager.deleteBill(${bill.id})">Delete</button>
+                </td>
             `;
             tbody.appendChild(tr);
         });
@@ -935,6 +944,61 @@ class UIManager {
         doc.text('Thank you for your payment!', 20, yPos);
 
         doc.save(`receipt_${student.name.replace(/\s+/g, '_')}.pdf`);
+    }
+
+    editBill(id) {
+        const bill = this.dataManager.billings.find(b => b.id === id);
+        if (bill) {
+            document.getElementById('edit-bill-description').value = bill.description;
+            document.getElementById('edit-bill-amount').value = bill.amount;
+            this.updateEditBillStudentSelect(bill.studentId);
+            document.getElementById('edit-bill-modal').classList.remove('hidden');
+            this.editingBillId = id;
+        }
+    }
+
+    updateEditBillStudentSelect(selectedStudentId) {
+        const select = document.getElementById('edit-bill-student');
+        select.innerHTML = '<option value="">Select Student</option>';
+        this.dataManager.students.forEach(student => {
+            const option = document.createElement('option');
+            option.value = student.id;
+            option.textContent = student.name;
+            if (student.id === selectedStudentId) option.selected = true;
+            select.appendChild(option);
+        });
+    }
+
+    updateBill() {
+        const studentId = parseInt(document.getElementById('edit-bill-student').value);
+        const description = document.getElementById('edit-bill-description').value.trim();
+        const amount = parseFloat(document.getElementById('edit-bill-amount').value);
+
+        if (studentId && description && amount > 0 && this.editingBillId) {
+            const bill = this.dataManager.billings.find(b => b.id === this.editingBillId);
+            if (bill) {
+                bill.studentId = studentId;
+                bill.description = description;
+                bill.amount = amount;
+                this.dataManager.saveData('billings', this.dataManager.billings);
+                this.updateBillsTable();
+                this.updateStudentsTable();
+                this.updateDashboard();
+                this.closeModals();
+                this.dataManager.syncManager.syncToRemote();
+            }
+        }
+    }
+
+    deleteBill(id) {
+        if (confirm('Are you sure you want to delete this bill?')) {
+            this.dataManager.billings = this.dataManager.billings.filter(bill => bill.id !== id);
+            this.dataManager.saveData('billings', this.dataManager.billings);
+            this.updateBillsTable();
+            this.updateStudentsTable();
+            this.updateDashboard();
+            this.dataManager.syncManager.syncToRemote();
+        }
     }
 
     clearData() {
