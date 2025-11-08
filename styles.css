@@ -139,13 +139,13 @@ button:hover {
     text-decoration: none;
     padding: 0.5rem 1rem;
     border-radius: 4px;
-    background: rgba(255, 255, 255, 0.1);
+    background: #34495e;
     transition: background 0.3s;
 }
 
 .nav-menu a:hover,
 .nav-menu a.active {
-    background: #34495e;
+    background: #3d566e;
 }
 
 /* Main Content */
