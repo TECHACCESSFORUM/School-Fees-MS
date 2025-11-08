@@ -221,6 +221,8 @@ class UIManager {
                 this.updateEditClassButton();
             } else if (e.target.name === 'teacher-select') {
                 this.updateEditTeacherButton();
+            } else if (e.target.name === 'student-select') {
+                this.updateEditStudentBillsButton();
             }
         });
 
@@ -270,6 +272,10 @@ class UIManager {
 
         document.getElementById('edit-teacher-btn').addEventListener('click', () => {
             this.editSelectedTeacher();
+        });
+
+        document.getElementById('edit-student-bills-btn').addEventListener('click', () => {
+            this.editStudentBills();
         });
 
         document.getElementById('payment-form').addEventListener('submit', (e) => {
@@ -507,7 +513,7 @@ class UIManager {
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${student.name} <button class="action-btn print-btn" onclick="uiManager.printStudentReceipt(${student.id})" style="margin-left: 10px;">Print Receipt</button></td>
+                <td><input type="radio" name="student-select" value="${student.id}" style="margin-right: 10px;">${student.name} <button class="action-btn print-btn" onclick="uiManager.printStudentReceipt(${student.id})" style="margin-left: 10px;">Print Receipt</button></td>
                 <td>${cls ? cls.name : 'N/A'}</td>
                 <td>${student.studentId || '-'}</td>
                 <td>${student.phone || '-'}</td>
@@ -520,6 +526,7 @@ class UIManager {
             `;
             tbody.appendChild(tr);
         });
+        this.updateEditStudentBillsButton();
     }
 
     calculateStudentBalance(studentId) {
@@ -664,6 +671,12 @@ class UIManager {
     updateEditTeacherButton() {
         const selected = document.querySelector('input[name="teacher-select"]:checked');
         const btn = document.getElementById('edit-teacher-btn');
+        btn.style.display = selected ? 'block' : 'none';
+    }
+
+    updateEditStudentBillsButton() {
+        const selected = document.querySelector('input[name="student-select"]:checked');
+        const btn = document.getElementById('edit-student-bills-btn');
         btn.style.display = selected ? 'block' : 'none';
     }
 
@@ -986,6 +999,10 @@ class UIManager {
                 this.updateDashboard();
                 this.closeModals();
                 this.dataManager.syncManager.syncToRemote();
+                // Refresh the student bills modal if it's open
+                if (!document.getElementById('edit-student-bills-modal').classList.contains('hidden')) {
+                    this.editStudentBills();
+                }
             }
         }
     }
@@ -998,6 +1015,41 @@ class UIManager {
             this.updateStudentsTable();
             this.updateDashboard();
             this.dataManager.syncManager.syncToRemote();
+            // Refresh the student bills modal if it's open
+            if (!document.getElementById('edit-student-bills-modal').classList.contains('hidden')) {
+                this.editStudentBills();
+            }
+        }
+    }
+
+    editStudentBills() {
+        const selected = document.querySelector('input[name="student-select"]:checked');
+        if (selected) {
+            const studentId = parseInt(selected.value);
+            const student = this.dataManager.students.find(s => s.id === studentId);
+            if (student) {
+                const bills = this.dataManager.billings.filter(bill => bill.studentId === studentId);
+                const list = document.getElementById('student-bills-list');
+                list.innerHTML = `<h3>Bills for ${student.name}</h3>`;
+                if (bills.length === 0) {
+                    list.innerHTML += '<p>No bills found for this student.</p>';
+                } else {
+                    bills.forEach(bill => {
+                        const billDiv = document.createElement('div');
+                        billDiv.className = 'bill-item';
+                        billDiv.innerHTML = `
+                            <p><strong>Description:</strong> ${bill.description}</p>
+                            <p><strong>Amount:</strong> GH₵${parseFloat(bill.amount).toFixed(2)}</p>
+                            <p><strong>Date:</strong> ${new Date(bill.date).toLocaleDateString()}</p>
+                            <button class="action-btn edit-btn" onclick="uiManager.editBill(${bill.id})">Edit This Bill</button>
+                            <button class="action-btn" onclick="uiManager.deleteBill(${bill.id})">Delete This Bill</button>
+                            <hr>
+                        `;
+                        list.appendChild(billDiv);
+                    });
+                }
+                document.getElementById('edit-student-bills-modal').classList.remove('hidden');
+            }
         }
     }
 

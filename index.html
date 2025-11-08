@@ -55,15 +55,15 @@
                     </div>
                     <div class="stat-card">
                         <h3>Total Billed</h3>
-                        <p id="total-billed">$0</p>
+                        <p id="total-billed">GH₵0</p>
                     </div>
                     <div class="stat-card">
                         <h3>Total Paid</h3>
-                        <p id="total-paid">$0</p>
+                        <p id="total-paid">GH₵0</p>
                     </div>
                     <div class="stat-card">
                         <h3>Outstanding</h3>
-                        <p id="total-outstanding">$0</p>
+                        <p id="total-outstanding">GH₵0</p>
                     </div>
                 </div>
             </div>
@@ -102,6 +102,7 @@
                     </thead>
                     <tbody></tbody>
                 </table>
+                <button id="edit-student-bills-btn" style="display: none;">Edit Bills for Selected Student</button>
             </div>
 
             <div id="teachers-tab" class="tab-content">
@@ -229,6 +230,14 @@
                 <input type="number" id="edit-bill-amount" placeholder="Amount" step="0.01" required>
                 <button type="submit">Update Bill</button>
             </form>
+        </div>
+    </div>
+
+    <div id="edit-student-bills-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit Bills for Student</h2>
+            <div id="student-bills-list"></div>
         </div>
     </div>
 
