@@ -17,6 +17,7 @@ class SyncManager {
         this.remoteUrl = 'https://api.jsonbin.io/v3/b/6793e8b8acd3cb34a8c8e8e8'; // Replace with your JSONBin URL
         this.apiKey = 'YOUR_JSONBIN_API_KEY'; // Replace with your API key
         this.isSyncing = false;
+        this.remoteEnabled = this.apiKey !== 'YOUR_JSONBIN_API_KEY' && this.remoteUrl !== 'https://api.jsonbin.io/v3/b/6793e8b8acd3cb34a8c8e8e8';
     }
 
     setSyncStatus(status) {
@@ -28,7 +29,7 @@ class SyncManager {
     }
 
     async syncToRemote() {
-        if (this.isSyncing) return;
+        if (this.isSyncing || !this.remoteEnabled) return;
         this.isSyncing = true;
         this.setSyncStatus('Syncing...');
 
@@ -56,6 +57,7 @@ class SyncManager {
     }
 
     async loadFromRemote() {
+        if (!this.remoteEnabled) return false;
         try {
             const response = await fetch(this.remoteUrl, {
                 headers: {
@@ -213,6 +215,15 @@ class UIManager {
             this.addClass();
         });
 
+        // Radio button change events
+        document.addEventListener('change', (e) => {
+            if (e.target.name === 'class-select') {
+                this.updateEditClassButton();
+            } else if (e.target.name === 'teacher-select') {
+                this.updateEditTeacherButton();
+            }
+        });
+
         // Students
         document.getElementById('student-form').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -241,6 +252,24 @@ class UIManager {
         document.getElementById('edit-student-form').addEventListener('submit', (e) => {
             e.preventDefault();
             this.updateStudent();
+        });
+
+        document.getElementById('edit-class-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.updateClass();
+        });
+
+        document.getElementById('edit-teacher-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.updateTeacher();
+        });
+
+        document.getElementById('edit-class-btn').addEventListener('click', () => {
+            this.editSelectedClass();
+        });
+
+        document.getElementById('edit-teacher-btn').addEventListener('click', () => {
+            this.editSelectedTeacher();
         });
 
         document.getElementById('payment-form').addEventListener('submit', (e) => {
@@ -385,11 +414,13 @@ class UIManager {
         this.dataManager.classes.forEach(cls => {
             const li = document.createElement('li');
             li.innerHTML = `
+                <input type="radio" name="class-select" value="${cls.id}" style="margin-right: 10px;">
                 <span>${cls.name}</span>
                 <button class="action-btn" onclick="uiManager.deleteClass(${cls.id})">Delete</button>
             `;
             list.appendChild(li);
         });
+        this.updateEditClassButton();
     }
 
     deleteClass(id) {
@@ -399,6 +430,40 @@ class UIManager {
             this.updateClassesList();
             this.updateClassSelects();
             this.dataManager.syncManager.syncToRemote();
+        }
+    }
+
+    updateEditClassButton() {
+        const selected = document.querySelector('input[name="class-select"]:checked');
+        const btn = document.getElementById('edit-class-btn');
+        btn.style.display = selected ? 'block' : 'none';
+    }
+
+    editSelectedClass() {
+        const selected = document.querySelector('input[name="class-select"]:checked');
+        if (selected) {
+            const classId = parseInt(selected.value);
+            const cls = this.dataManager.classes.find(c => c.id === classId);
+            if (cls) {
+                document.getElementById('edit-class-name').value = cls.name;
+                document.getElementById('edit-class-modal').classList.remove('hidden');
+                this.editingClassId = classId;
+            }
+        }
+    }
+
+    updateClass() {
+        const name = document.getElementById('edit-class-name').value.trim();
+        if (name && this.editingClassId) {
+            const cls = this.dataManager.classes.find(c => c.id === this.editingClassId);
+            if (cls) {
+                cls.name = name;
+                this.dataManager.saveData('classes', this.dataManager.classes);
+                this.updateClassesList();
+                this.updateClassSelects();
+                this.closeModals();
+                this.dataManager.syncManager.syncToRemote();
+            }
         }
     }
 
@@ -570,7 +635,7 @@ class UIManager {
         this.dataManager.teachers.forEach(teacher => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${teacher.name}</td>
+                <td><input type="radio" name="teacher-select" value="${teacher.id}" style="margin-right: 10px;">${teacher.name}</td>
                 <td>${teacher.email || '-'}</td>
                 <td>${teacher.phone || '-'}</td>
                 <td>
@@ -579,6 +644,7 @@ class UIManager {
             `;
             tbody.appendChild(tr);
         });
+        this.updateEditTeacherButton();
     }
 
     deleteTeacher(id) {
@@ -587,6 +653,46 @@ class UIManager {
             this.dataManager.saveData('teachers', this.dataManager.teachers);
             this.updateTeachersTable();
             this.dataManager.syncManager.syncToRemote();
+        }
+    }
+
+    updateEditTeacherButton() {
+        const selected = document.querySelector('input[name="teacher-select"]:checked');
+        const btn = document.getElementById('edit-teacher-btn');
+        btn.style.display = selected ? 'block' : 'none';
+    }
+
+    editSelectedTeacher() {
+        const selected = document.querySelector('input[name="teacher-select"]:checked');
+        if (selected) {
+            const teacherId = parseInt(selected.value);
+            const teacher = this.dataManager.teachers.find(t => t.id === teacherId);
+            if (teacher) {
+                document.getElementById('edit-teacher-name').value = teacher.name;
+                document.getElementById('edit-teacher-email').value = teacher.email || '';
+                document.getElementById('edit-teacher-phone').value = teacher.phone || '';
+                document.getElementById('edit-teacher-modal').classList.remove('hidden');
+                this.editingTeacherId = teacherId;
+            }
+        }
+    }
+
+    updateTeacher() {
+        const name = document.getElementById('edit-teacher-name').value.trim();
+        const email = document.getElementById('edit-teacher-email').value.trim();
+        const phone = document.getElementById('edit-teacher-phone').value.trim();
+
+        if (name && this.editingTeacherId) {
+            const teacher = this.dataManager.teachers.find(t => t.id === this.editingTeacherId);
+            if (teacher) {
+                teacher.name = name;
+                teacher.email = email;
+                teacher.phone = phone;
+                this.dataManager.saveData('teachers', this.dataManager.teachers);
+                this.updateTeachersTable();
+                this.closeModals();
+                this.dataManager.syncManager.syncToRemote();
+            }
         }
     }
 

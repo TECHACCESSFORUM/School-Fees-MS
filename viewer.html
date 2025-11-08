@@ -191,7 +191,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Name</th>
-                        <th>Student ID</th>
+                        <th>Email</th>
                         <th>Phone</th>
                         <th>Actions</th>
                     </tr>
@@ -344,6 +344,7 @@
                 this.apiKey = 'YOUR_JSONBIN_API_KEY'; // Replace with your API key
                 this.data = null;
                 this.isSyncing = false;
+                this.remoteEnabled = this.apiKey !== 'YOUR_JSONBIN_API_KEY' && this.remoteUrl !== 'https://api.jsonbin.io/v3/b/6793e8b8acd3cb34a8c8e8e8';
                 this.init();
             }
 
@@ -396,40 +397,55 @@
 
             async loadData() {
                 try {
-                    this.setSyncStatus('Loading...');
-                    const response = await fetch(this.remoteUrl, {
-                        headers: {
-                            'X-Master-Key': this.apiKey
-                        }
-                    });
+                    if (this.remoteEnabled) {
+                        this.setSyncStatus('Loading...');
+                        const response = await fetch(this.remoteUrl, {
+                            headers: {
+                                'X-Master-Key': this.apiKey
+                            }
+                        });
 
-                    if (!response.ok) throw new Error('Failed to load data');
+                        if (!response.ok) throw new Error('Failed to load data');
 
-                    const result = await response.json();
-                    this.data = result.record || {
-                        classes: [],
-                        students: [],
-                        teachers: [],
-                        billings: [],
-                        payments: []
-                    };
+                        const result = await response.json();
+                        this.data = result.record || {
+                            classes: [],
+                            students: [],
+                            teachers: [],
+                            billings: [],
+                            payments: []
+                        };
 
-                    this.setSyncStatus('Data loaded successfully');
+                        this.setSyncStatus('Data loaded successfully');
+                    } else {
+                        this.setSyncStatus('Loading local data...');
+                        // Load from localStorage as fallback
+                        this.data = {
+                            classes: JSON.parse(localStorage.getItem('classes') || '[]'),
+                            students: JSON.parse(localStorage.getItem('students') || '[]'),
+                            teachers: JSON.parse(localStorage.getItem('teachers') || '[]'),
+                            billings: JSON.parse(localStorage.getItem('billings') || '[]'),
+                            payments: JSON.parse(localStorage.getItem('payments') || '[]')
+                        };
+                        this.setSyncStatus('Local data loaded');
+                    }
                 } catch (error) {
                     console.error('Load error:', error);
-                    this.setSyncStatus('Error loading data');
+                    this.setSyncStatus('Loading local data...');
+                    // Load from localStorage as fallback
                     this.data = {
-                        classes: [],
-                        students: [],
-                        teachers: [],
-                        billings: [],
-                        payments: []
+                        classes: JSON.parse(localStorage.getItem('classes') || '[]'),
+                        students: JSON.parse(localStorage.getItem('students') || '[]'),
+                        teachers: JSON.parse(localStorage.getItem('teachers') || '[]'),
+                        billings: JSON.parse(localStorage.getItem('billings') || '[]'),
+                        payments: JSON.parse(localStorage.getItem('payments') || '[]')
                     };
+                    this.setSyncStatus('Local data loaded');
                 }
             }
 
             async syncToRemote() {
-                if (this.isSyncing) return;
+                if (this.isSyncing || !this.remoteEnabled) return;
                 this.isSyncing = true;
                 this.setSyncStatus('Syncing...');
 

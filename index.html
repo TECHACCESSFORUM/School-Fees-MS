@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -36,9 +36,11 @@
                 <li><a href="#" data-tab="home">Home</a></li>
                 <li><a href="#" data-tab="classes">Classes</a></li>
                 <li><a href="#" data-tab="students">Students</a></li>
+                <li><a href="#" data-tab="teachers">Teachers</a></li>
                 <li><a href="#" data-tab="billing">Billing</a></li>
                 <li><a href="#" data-tab="reports">Reports</a></li>
                 <li><a href="#" data-tab="settings">Settings</a></li>
+                <li><a href="viewer.html" target="_blank">Data Viewer</a></li>
             </ul>
             <button id="logout-btn">Logout</button>
         </nav>
@@ -73,6 +75,7 @@
                     <button type="submit">Add Class</button>
                 </form>
                 <ul id="classes-list"></ul>
+                <button id="edit-class-btn" style="display: none;">Edit Selected Class</button>
             </div>
 
             <div id="students-tab" class="tab-content">
@@ -101,6 +104,27 @@
                 </table>
             </div>
 
+            <div id="teachers-tab" class="tab-content">
+                <h2>Manage Teachers</h2>
+                <form id="teacher-form">
+                    <input type="text" id="teacher-name" placeholder="Teacher Name" required>
+                    <input type="email" id="teacher-email" placeholder="Email">
+                    <input type="tel" id="teacher-phone" placeholder="Phone">
+                    <button type="submit">Add Teacher</button>
+                </form>
+                <table id="teachers-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <button id="edit-teacher-btn" style="display: none;">Edit Selected Teacher</button>
+            </div>
 
             <div id="billing-tab" class="tab-content">
                 <h2>Billing System</h2>
@@ -152,6 +176,30 @@
                 <select id="edit-student-class" required></select>
                 <input type="text" id="edit-student-id" required>
                 <input type="tel" id="edit-student-phone">
+                <button type="submit">Update</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="edit-class-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit Class</h2>
+            <form id="edit-class-form">
+                <input type="text" id="edit-class-name" required>
+                <button type="submit">Update</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="edit-teacher-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit Teacher</h2>
+            <form id="edit-teacher-form">
+                <input type="text" id="edit-teacher-name" required>
+                <input type="email" id="edit-teacher-email">
+                <input type="tel" id="edit-teacher-phone">
                 <button type="submit">Update</button>
             </form>
         </div>
