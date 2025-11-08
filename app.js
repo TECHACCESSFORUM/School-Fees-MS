@@ -437,7 +437,7 @@ class UIManager {
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${student.name}</td>
+                <td>${student.name} <button class="action-btn print-btn" onclick="uiManager.printStudentReceipt(${student.id})" style="margin-left: 10px;">Print Receipt</button></td>
                 <td>${cls ? cls.name : 'N/A'}</td>
                 <td>${student.studentId || '-'}</td>
                 <td>${student.phone || '-'}</td>
@@ -445,7 +445,6 @@ class UIManager {
                 <td>
                     <button class="action-btn edit-btn" onclick="uiManager.editStudent(${student.id})">Edit</button>
                     <button class="action-btn pay-btn" onclick="uiManager.showPaymentModal(${student.id})">Pay</button>
-                    ${this.authManager.isAdmin() ? `<button class="action-btn print-btn" onclick="uiManager.printStudentReceipt(${student.id})">Print Receipt</button>` : ''}
                     <button class="action-btn" onclick="uiManager.deleteStudent(${student.id})">Delete</button>
                 </td>
             `;

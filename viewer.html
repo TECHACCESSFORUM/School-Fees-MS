@@ -191,7 +191,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Name</th>
-                        <th>Email</th>
+                        <th>Student ID</th>
                         <th>Phone</th>
                         <th>Actions</th>
                     </tr>
@@ -263,8 +263,8 @@
                     <select id="edit-student-class" required></select>
                 </div>
                 <div class="form-group">
-                    <label for="edit-student-email">Email:</label>
-                    <input type="email" id="edit-student-email">
+                    <label for="edit-student-studentId">Student ID:</label>
+                    <input type="text" id="edit-student-studentId">
                 </div>
                 <div class="form-group">
                     <label for="edit-student-phone">Phone:</label>
@@ -493,7 +493,7 @@
                         <td>${student.id}</td>
                         <td>${student.name}</td>
                         <td>${cls ? cls.name : 'N/A'}</td>
-                        <td>${student.email || '-'}</td>
+                        <td>${student.studentId || '-'}</td>
                         <td>${student.phone || '-'}</td>
                         <td>$${balance.toFixed(2)}</td>
                         <td>
@@ -590,7 +590,7 @@
                 const student = this.data.students.find(s => s.id === id);
                 if (student) {
                     document.getElementById('edit-student-name').value = student.name;
-                    document.getElementById('edit-student-email').value = student.email || '';
+                    document.getElementById('edit-student-studentId').value = student.studentId || '';
                     document.getElementById('edit-student-phone').value = student.phone || '';
                     this.populateClassSelect('edit-student-class', student.classId);
                     document.getElementById('edit-student-modal').style.display = 'block';
@@ -647,7 +647,7 @@
             updateStudent() {
                 const name = document.getElementById('edit-student-name').value.trim();
                 const classId = parseInt(document.getElementById('edit-student-class').value);
-                const email = document.getElementById('edit-student-email').value.trim();
+                const studentId = document.getElementById('edit-student-studentId').value.trim();
                 const phone = document.getElementById('edit-student-phone').value.trim();
 
                 if (name && classId && this.editingStudentId) {
@@ -655,7 +655,7 @@
                     if (student) {
                         student.name = name;
                         student.classId = classId;
-                        student.email = email;
+                        student.studentId = studentId;
                         student.phone = phone;
                         this.renderStudentsTable();
                         this.renderBillingsTable();
