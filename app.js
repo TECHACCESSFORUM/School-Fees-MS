@@ -396,9 +396,9 @@ class UIManager {
         const outstanding = totalBilled - totalPaid;
 
         document.getElementById('total-students').textContent = totalStudents;
-        document.getElementById('total-billed').textContent = `$${totalBilled.toFixed(2)}`;
-        document.getElementById('total-paid').textContent = `$${totalPaid.toFixed(2)}`;
-        document.getElementById('total-outstanding').textContent = `$${outstanding.toFixed(2)}`;
+        document.getElementById('total-billed').textContent = `GH₵${totalBilled.toFixed(2)}`;
+        document.getElementById('total-paid').textContent = `GH₵${totalPaid.toFixed(2)}`;
+        document.getElementById('total-outstanding').textContent = `GH₵${outstanding.toFixed(2)}`;
     }
 
     addClass() {
@@ -511,7 +511,7 @@ class UIManager {
                 <td>${cls ? cls.name : 'N/A'}</td>
                 <td>${student.studentId || '-'}</td>
                 <td>${student.phone || '-'}</td>
-                <td>$${balance.toFixed(2)}</td>
+                <td>GH₵${balance.toFixed(2)}</td>
                 <td>
                     <button class="action-btn edit-btn" onclick="uiManager.editStudent(${student.id})">Edit</button>
                     <button class="action-btn pay-btn" onclick="uiManager.showPaymentModal(${student.id})">Pay</button>
@@ -733,7 +733,7 @@ class UIManager {
             tr.innerHTML = `
                 <td>${student ? student.name : 'Unknown'}</td>
                 <td>${bill.description}</td>
-                <td>$${parseFloat(bill.amount).toFixed(2)}</td>
+                <td>GH₵${parseFloat(bill.amount).toFixed(2)}</td>
                 <td>${new Date(bill.date).toLocaleDateString()}</td>
                 <td>
                     <button class="action-btn edit-btn" onclick="uiManager.editBill(${bill.id})">Edit</button>
@@ -793,9 +793,9 @@ class UIManager {
             ['Total Students', this.dataManager.students.length],
             ['Total Teachers', this.dataManager.teachers.length],
             ['Total Classes', this.dataManager.classes.length],
-            ['Total Billed', `$${this.dataManager.billings.reduce((sum, bill) => sum + parseFloat(bill.amount), 0).toFixed(2)}`],
-            ['Total Paid', `$${this.dataManager.payments.reduce((sum, payment) => sum + parseFloat(payment.amount), 0).toFixed(2)}`],
-            ['Outstanding', `$${this.calculateOutstanding().toFixed(2)}`]
+            ['Total Billed', `GH₵${this.dataManager.billings.reduce((sum, bill) => sum + parseFloat(bill.amount), 0).toFixed(2)}`],
+            ['Total Paid', `GH₵${this.dataManager.payments.reduce((sum, payment) => sum + parseFloat(payment.amount), 0).toFixed(2)}`],
+            ['Outstanding', `GH₵${this.calculateOutstanding().toFixed(2)}`]
         ];
 
         doc.autoTable({
@@ -812,7 +812,7 @@ class UIManager {
         const studentsData = this.dataManager.students.map(student => {
             const cls = this.dataManager.classes.find(c => c.id === student.classId);
             const balance = this.calculateStudentBalance(student.id);
-            return [student.name, cls ? cls.name : 'N/A', `$${balance.toFixed(2)}`];
+            return [student.name, cls ? cls.name : 'N/A', `GH₵${balance.toFixed(2)}`];
         });
 
         doc.autoTable({
@@ -840,10 +840,10 @@ class UIManager {
             doc.text(`Receipt #: ${payment.id}`, 20, 50);
             doc.text(`Date: ${new Date(payment.date).toLocaleDateString()}`, 20, 60);
             doc.text(`Student: ${student ? student.name : 'Unknown'}`, 20, 70);
-            doc.text(`Amount Paid: $${parseFloat(payment.amount).toFixed(2)}`, 20, 80);
+            doc.text(`Amount Paid: GH₵${parseFloat(payment.amount).toFixed(2)}`, 20, 80);
 
             const balance = this.calculateStudentBalance(payment.studentId);
-            doc.text(`Outstanding Balance: $${balance.toFixed(2)}`, 20, 90);
+            doc.text(`Outstanding Balance: GH₵${balance.toFixed(2)}`, 20, 90);
         });
 
         doc.save('payment_receipts.pdf');
@@ -910,7 +910,7 @@ class UIManager {
         let yPos = 120;
         doc.setFontSize(10);
         bills.forEach(bill => {
-            doc.text(`${bill.description}: $${parseFloat(bill.amount).toFixed(2)} (${new Date(bill.date).toLocaleDateString()})`, 20, yPos);
+            doc.text(`${bill.description}: GH₵${parseFloat(bill.amount).toFixed(2)} (${new Date(bill.date).toLocaleDateString()})`, 20, yPos);
             yPos += 10;
         });
 
@@ -921,7 +921,7 @@ class UIManager {
         yPos += 10;
         doc.setFontSize(10);
         payments.forEach(payment => {
-            doc.text(`Payment: $${parseFloat(payment.amount).toFixed(2)} (${new Date(payment.date).toLocaleDateString()})`, 20, yPos);
+            doc.text(`Payment: GH₵${parseFloat(payment.amount).toFixed(2)} (${new Date(payment.date).toLocaleDateString()})`, 20, yPos);
             yPos += 10;
         });
 
@@ -932,11 +932,11 @@ class UIManager {
 
         yPos += 10;
         doc.setFontSize(12);
-        doc.text(`Total Billed: $${totalBilled.toFixed(2)}`, 20, yPos);
+        doc.text(`Total Billed: GH₵${totalBilled.toFixed(2)}`, 20, yPos);
         yPos += 10;
-        doc.text(`Total Paid: $${totalPaid.toFixed(2)}`, 20, yPos);
+        doc.text(`Total Paid: GH₵${totalPaid.toFixed(2)}`, 20, yPos);
         yPos += 10;
-        doc.text(`Outstanding Balance: $${balance.toFixed(2)}`, 20, yPos);
+        doc.text(`Outstanding Balance: GH₵${balance.toFixed(2)}`, 20, yPos);
 
         // Footer
         yPos += 20;
