@@ -510,6 +510,7 @@ class UIManager {
         this.dataManager.students.forEach(student => {
             const cls = this.dataManager.classes.find(c => c.id === student.classId);
             const balance = this.calculateStudentBalance(student.id);
+            const totalBilled = this.calculateStudentBilled(student.id);
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -517,6 +518,11 @@ class UIManager {
                 <td>${cls ? cls.name : 'N/A'}</td>
                 <td>${student.studentId || '-'}</td>
                 <td>${student.phone || '-'}</td>
+                <td>
+                    <input type="number" step="0.01" min="0" value="${totalBilled.toFixed(2)}"
+                           onchange="uiManager.updateStudentTotalBilled(${student.id}, this.value)"
+                           style="width: 100px; text-align: right;">
+                </td>
                 <td>GH₵${balance.toFixed(2)}</td>
                 <td>
                     <button class="action-btn edit-btn" onclick="uiManager.editStudent(${student.id})">Edit</button>
@@ -535,6 +541,11 @@ class UIManager {
         const payments = this.dataManager.payments.filter(payment => payment.studentId === studentId)
             .reduce((sum, payment) => sum + parseFloat(payment.amount), 0);
         return bills - payments;
+    }
+
+    calculateStudentBilled(studentId) {
+        return this.dataManager.billings.filter(bill => bill.studentId === studentId)
+            .reduce((sum, bill) => sum + parseFloat(bill.amount), 0);
     }
 
     editStudent(id) {
@@ -745,8 +756,16 @@ class UIManager {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${student ? student.name : 'Unknown'}</td>
-                <td>${bill.description}</td>
-                <td>GH₵${parseFloat(bill.amount).toFixed(2)}</td>
+                <td>
+                    <input type="text" value="${bill.description}"
+                           onchange="uiManager.updateBillDescription(${bill.id}, this.value)"
+                           style="width: 100%;">
+                </td>
+                <td>
+                    <input type="number" step="0.01" min="0" value="${parseFloat(bill.amount).toFixed(2)}"
+                           onchange="uiManager.updateBillAmount(${bill.id}, this.value)"
+                           style="width: 100px; text-align: right;">
+                </td>
                 <td>${new Date(bill.date).toLocaleDateString()}</td>
                 <td>
                     <button class="action-btn edit-btn" onclick="uiManager.editBill(${bill.id})">Edit</button>
@@ -1007,6 +1026,93 @@ class UIManager {
         }
     }
 
+    updateBillAmount(id, newAmount) {
+        const amount = parseFloat(newAmount);
+        if (amount >= 0) {
+            const bill = this.dataManager.billings.find(b => b.id === id);
+            if (bill) {
+                bill.amount = amount;
+                this.dataManager.saveData('billings', this.dataManager.billings);
+                this.updateBillsTable();
+                this.updateStudentsTable();
+                this.updateDashboard();
+                this.dataManager.syncManager.syncToRemote();
+                // Refresh the student bills modal if it's open
+                if (!document.getElementById('edit-student-bills-modal').classList.contains('hidden')) {
+                    this.editStudentBills();
+                }
+            }
+        }
+    }
+
+    updateBillDescription(id, newDescription) {
+        const description = newDescription.trim();
+        if (description) {
+            const bill = this.dataManager.billings.find(b => b.id === id);
+            if (bill) {
+                bill.description = description;
+                this.dataManager.saveData('billings', this.dataManager.billings);
+                this.updateBillsTable();
+                this.updateStudentsTable();
+                this.updateDashboard();
+                this.dataManager.syncManager.syncToRemote();
+                // Refresh the student bills modal if it's open
+                if (!document.getElementById('edit-student-bills-modal').classList.contains('hidden')) {
+                    this.editStudentBills();
+                }
+            }
+        }
+    }
+
+    updateStudentTotalBilled(studentId, newTotalBilled) {
+        const newAmount = parseFloat(newTotalBilled);
+        if (newAmount >= 0) {
+            const currentBilled = this.calculateStudentBilled(studentId);
+            const difference = newAmount - currentBilled;
+
+            if (difference !== 0) {
+                // If increasing, add a new bill; if decreasing, adjust existing bills
+                if (difference > 0) {
+                    // Add a new bill for the difference
+                    this.dataManager.billings.push({
+                        id: Date.now(),
+                        studentId: studentId,
+                        description: 'Adjusted Billing',
+                        amount: difference,
+                        date: new Date().toISOString()
+                    });
+                } else {
+                    // Reduce existing bills proportionally
+                    const studentBills = this.dataManager.billings.filter(bill => bill.studentId === studentId);
+                    let remainingAdjustment = Math.abs(difference);
+
+                    for (const bill of studentBills) {
+                        if (remainingAdjustment <= 0) break;
+                        const billAmount = parseFloat(bill.amount);
+                        if (billAmount > 0) {
+                            const reduceAmount = Math.min(remainingAdjustment, billAmount);
+                            bill.amount = billAmount - reduceAmount;
+                            remainingAdjustment -= reduceAmount;
+                        }
+                    }
+
+                    // Remove bills with zero amount
+                    this.dataManager.billings = this.dataManager.billings.filter(bill => parseFloat(bill.amount) > 0);
+                }
+
+                this.dataManager.saveData('billings', this.dataManager.billings);
+                this.updateBillsTable();
+                this.updateStudentsTable();
+                this.updateDashboard();
+                this.dataManager.syncManager.syncToRemote();
+                // Refresh the student bills modal if it's open
+                if (!document.getElementById('edit-student-bills-modal').classList.contains('hidden')) {
+                    this.editStudentBills();
+                }
+            }
+        }
+    }
+
     deleteBill(id) {
         if (confirm('Are you sure you want to delete this bill?')) {
             this.dataManager.billings = this.dataManager.billings.filter(bill => bill.id !== id);
@@ -1038,8 +1144,16 @@ class UIManager {
                         const billDiv = document.createElement('div');
                         billDiv.className = 'bill-item';
                         billDiv.innerHTML = `
-                            <p><strong>Description:</strong> ${bill.description}</p>
-                            <p><strong>Amount:</strong> GH₵${parseFloat(bill.amount).toFixed(2)}</p>
+                            <p><strong>Description:</strong>
+                                <input type="text" value="${bill.description}"
+                                       onchange="uiManager.updateBillDescription(${bill.id}, this.value)"
+                                       style="width: 100%;">
+                            </p>
+                            <p><strong>Amount:</strong>
+                                <input type="number" step="0.01" min="0" value="${parseFloat(bill.amount).toFixed(2)}"
+                                       onchange="uiManager.updateBillAmount(${bill.id}, this.value)"
+                                       style="width: 100px; text-align: right;">
+                            </p>
                             <p><strong>Date:</strong> ${new Date(bill.date).toLocaleDateString()}</p>
                             <button class="action-btn edit-btn" onclick="uiManager.editBill(${bill.id})">Edit This Bill</button>
                             <button class="action-btn" onclick="uiManager.deleteBill(${bill.id})">Delete This Bill</button>
