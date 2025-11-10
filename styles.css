@@ -412,11 +412,6 @@ ul li:last-child {
 }
 
 @media (max-width: 480px) {
-    .nav-menu {
-        flex-direction: column;
-        width: 100%;
-    }
-
     .nav-menu li {
         text-align: center;
     }
